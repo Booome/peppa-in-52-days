@@ -46,12 +46,17 @@ enum PlaygroundState {
   ConfirmOK,
 }
 
-function renderDiff(
-  text1: string,
-  text2: string,
+function DiffRenderer({
+  text1,
+  text2,
   showAdded = true,
   showRemoved = true,
-) {
+}: {
+  text1: string;
+  text2: string;
+  showAdded?: boolean;
+  showRemoved?: boolean;
+}) {
   const diff = diffChars(text1, text2, {
     ignoreCase: true,
   });
@@ -95,17 +100,23 @@ function Playground({
   const [totalErrorCount, setTotalErrorCount] = useState(0);
   const [hightlightInput, setHightlightInput] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const containerClassName =
     "flex w-full flex-col rounded-xl border-2 border-yellow-950 bg-yellow-900 p-4 font-peppa-pig text-lg text-background shadow-xl lg:text-2xl";
   const buttonClassName =
     "mt-4 font-bold uppercase tracking-widest transition-transform hover:scale-105 active:scale-100";
 
   const advanceState = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
     switch (state) {
       case PlaygroundState.Input:
         if (input.length === 0) {
           setHightlightInput(false);
-          setTimeout(() => setHightlightInput(true), 10);
+          setTimeout(() => setHightlightInput(true), 1);
           return;
         }
         if (input.toLowerCase() === dialogs[index].en.toLowerCase()) {
@@ -113,6 +124,9 @@ function Playground({
           if (currentErrorCount === 0) {
             setCorrectCount((prev) => prev + 1);
           }
+          timeoutRef.current = setTimeout(() => {
+            advanceState();
+          }, 1000);
         } else {
           setState(PlaygroundState.ConfirmError);
           setCurrentErrorCount((prev) => prev + 1);
@@ -129,13 +143,21 @@ function Playground({
         setIndex((prev) => prev + 1);
         setCurrentErrorCount(0);
 
-        if (index >= dialogs.length - 1) {
+        if (index >= dialogs.length - 1 && correctCount == 0) {
           onSuccess?.();
         }
 
         break;
     }
   }, [dialogs, index, input, state, onSuccess, currentErrorCount]);
+
+  const restart = useCallback(() => {
+    setIndex(0);
+    setCorrectCount(0);
+    setTotalErrorCount(0);
+    setState(PlaygroundState.Input);
+    setInput("");
+  }, []);
 
   useEffect(() => {
     if (state === PlaygroundState.Input) {
@@ -148,6 +170,8 @@ function Playground({
   useEffect(() => {
     const handleCtrlEnterKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.key === "Enter") {
+        restart();
+      } else if (e.key === "Enter") {
         advanceState();
       }
     };
@@ -166,13 +190,7 @@ function Playground({
           {totalErrorCount}
         </p>
 
-        <Button
-          className={cn(buttonClassName, "mx-auto")}
-          onClick={() => {
-            setIndex(0);
-            setCorrectCount(0);
-          }}
-        >
+        <Button className={cn(buttonClassName, "mx-auto")} onClick={restart}>
           Restart
         </Button>
       </div>
@@ -195,7 +213,7 @@ function Playground({
         </span>
       </p>
       <div className="mt-4 flex h-20 items-start gap-2">
-        <span className="pt-2">In: </span>
+        <span className="pt-2">in: </span>
         {state === PlaygroundState.Input && (
           <textarea
             ref={inputRef}
@@ -205,7 +223,7 @@ function Playground({
             )}
             value={input}
             onChange={(e) => {
-              setInput(e.target.value);
+              setInput(e.target.value.replace(/\n/g, ""));
               setHightlightInput(false);
             }}
           />
@@ -213,23 +231,40 @@ function Playground({
         {(state === PlaygroundState.ConfirmError ||
           state === PlaygroundState.ConfirmOK) && (
           <p className="h-full w-full rounded-md border-2 border-background/20 bg-foreground/5 p-2">
-            {renderDiff(dialogs[index].en, input, true, true)}
+            <DiffRenderer
+              text1={dialogs[index].en}
+              text2={input}
+              showAdded={state === PlaygroundState.ConfirmOK}
+              showRemoved={state === PlaygroundState.ConfirmError}
+            />
           </p>
         )}
       </div>
 
-      <Button className={cn(buttonClassName, "mx-auto")} onClick={advanceState}>
-        {(() => {
-          switch (state) {
-            case PlaygroundState.Input:
-              return "Confirm (Ctrl + Enter)";
-            case PlaygroundState.ConfirmError:
-              return "Try Again (Ctrl + Enter)";
-            case PlaygroundState.ConfirmOK:
-              return "Next (Ctrl + Enter)";
-          }
-        })()}
-      </Button>
+      <div className="flex flex-col items-center justify-center lg:flex-row lg:gap-2">
+        <Button
+          className={cn(buttonClassName, "w-4/5 lg:w-fit")}
+          onClick={advanceState}
+        >
+          {(() => {
+            switch (state) {
+              case PlaygroundState.Input:
+                return "Confirm (Enter)";
+              case PlaygroundState.ConfirmError:
+                return "Try Again (Enter)";
+              case PlaygroundState.ConfirmOK:
+                return "Next (Enter)";
+            }
+          })()}
+        </Button>
+
+        <Button
+          className={cn(buttonClassName, "w-4/5 lg:w-fit")}
+          onClick={restart}
+        >
+          Restart (Ctrl + Enter)
+        </Button>
+      </div>
     </div>
   );
 }
