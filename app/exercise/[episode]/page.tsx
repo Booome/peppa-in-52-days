@@ -17,7 +17,7 @@ import { useDispatch, useSelector } from "react-redux";
 
 export default function Page() {
   const { episode } = useParams();
-  const [dialog, setDialog] = useState<any>(null);
+  const [dialog, setDialog] = useState<{ zh: string; en: string }[]>([]);
   const [exerciseStarted, setExerciseStarted] = useState(false);
   const video = videoList.find((v) => v.title === `day-${episode}`);
   const dispatch = useDispatch<AppDispatch>();
@@ -30,7 +30,7 @@ export default function Page() {
 
   useEffect(() => {
     dispatch(setLastLesson(Number(episode)));
-  }, [episode]);
+  }, [episode, dispatch]);
 
   useEffect(() => {
     const loadDialog = async () => {

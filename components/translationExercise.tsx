@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { diffChars } from "diff";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "./ui/button";
 
 export function TranslationExercise({
@@ -100,7 +100,7 @@ function Playground({
   const buttonClassName =
     "mt-4 font-bold uppercase tracking-widest transition-transform hover:scale-105 active:scale-100";
 
-  const advanceState = () => {
+  const advanceState = useCallback(() => {
     switch (state) {
       case PlaygroundState.Input:
         if (input.length === 0) {
@@ -135,7 +135,7 @@ function Playground({
 
         break;
     }
-  };
+  }, [dialogs, index, input, state, onSuccess, currentErrorCount]);
 
   useEffect(() => {
     if (state === PlaygroundState.Input) {
