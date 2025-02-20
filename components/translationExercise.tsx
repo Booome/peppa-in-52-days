@@ -100,56 +100,73 @@ function Playground({
   const [totalErrorCount, setTotalErrorCount] = useState(0);
   const [hightlightInput, setHightlightInput] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutToAdvanceOkRef = useRef<NodeJS.Timeout | null>(null);
   const containerClassName =
     "flex w-full flex-col rounded-xl border-2 border-yellow-950 bg-yellow-900 p-4 font-peppa-pig text-lg text-background shadow-xl lg:text-2xl";
   const buttonClassName =
     "mt-4 font-bold uppercase tracking-widest transition-transform hover:scale-105 active:scale-100";
 
   const advanceState = useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
+    if (timeoutToAdvanceOkRef.current) {
+      clearTimeout(timeoutToAdvanceOkRef.current);
+      timeoutToAdvanceOkRef.current = null;
     }
+
+    const advanceOkState = () => {
+      setState(PlaygroundState.Input);
+      setInput("");
+      setIndex((prev) => prev + 1);
+      setCurrentErrorCount(0);
+
+      if (index >= dialogs.length - 1 && correctCount == 0) {
+        onSuccess?.();
+      }
+    };
+
+    const advanceErrorState = () => {
+      setState(PlaygroundState.Input);
+      setInput("");
+    };
+
+    const advanceInputState = () => {
+      if (input.length === 0) {
+        setHightlightInput(false);
+        setTimeout(() => setHightlightInput(true), 1);
+        return;
+      }
+      if (input.toLowerCase() === dialogs[index].en.toLowerCase()) {
+        setState(PlaygroundState.ConfirmOK);
+        if (currentErrorCount === 0) {
+          setCorrectCount((prev) => prev + 1);
+        }
+        timeoutToAdvanceOkRef.current = setTimeout(advanceOkState, 1000);
+      } else {
+        setState(PlaygroundState.ConfirmError);
+        setCurrentErrorCount((prev) => prev + 1);
+        setTotalErrorCount((prev) => prev + 1);
+      }
+    };
 
     switch (state) {
       case PlaygroundState.Input:
-        if (input.length === 0) {
-          setHightlightInput(false);
-          setTimeout(() => setHightlightInput(true), 1);
-          return;
-        }
-        if (input.toLowerCase() === dialogs[index].en.toLowerCase()) {
-          setState(PlaygroundState.ConfirmOK);
-          if (currentErrorCount === 0) {
-            setCorrectCount((prev) => prev + 1);
-          }
-          timeoutRef.current = setTimeout(() => {
-            advanceState();
-          }, 1000);
-        } else {
-          setState(PlaygroundState.ConfirmError);
-          setCurrentErrorCount((prev) => prev + 1);
-          setTotalErrorCount((prev) => prev + 1);
-        }
+        advanceInputState();
         break;
       case PlaygroundState.ConfirmError:
-        setState(PlaygroundState.Input);
-        setInput("");
+        advanceErrorState();
         break;
       case PlaygroundState.ConfirmOK:
-        setState(PlaygroundState.Input);
-        setInput("");
-        setIndex((prev) => prev + 1);
-        setCurrentErrorCount(0);
-
-        if (index >= dialogs.length - 1 && correctCount == 0) {
-          onSuccess?.();
-        }
-
+        advanceOkState();
         break;
     }
-  }, [dialogs, index, input, state, onSuccess, currentErrorCount]);
+  }, [
+    dialogs,
+    index,
+    input,
+    state,
+    onSuccess,
+    currentErrorCount,
+    timeoutToAdvanceOkRef,
+  ]);
 
   const restart = useCallback(() => {
     setIndex(0);
