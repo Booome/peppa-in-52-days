@@ -33,7 +33,7 @@ export default function RootLayout({
       <body
         className={cn(
           `${geistSans.variable} ${geistMono.variable} antialiased`,
-          "flex min-h-screen w-screen flex-col items-center bg-hero-bg bg-cover bg-center bg-no-repeat",
+          "flex min-h-screen w-full flex-col items-center bg-hero-bg bg-cover bg-center bg-no-repeat",
         )}
       >
         <ReduxProvider>

@@ -95,7 +95,6 @@ function Playground({
   const [totalErrorCount, setTotalErrorCount] = useState(0);
   const [hightlightInput, setHightlightInput] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const timeoutToAdvanceOkRef = useRef<NodeJS.Timeout | null>(null);
   const containerClassName =
     "flex w-full flex-col rounded-xl border-2 border-yellow-950 bg-yellow-900 p-4 font-peppa-pig text-lg text-background shadow-xl lg:text-2xl";
   const buttonClassName =
@@ -103,11 +102,6 @@ function Playground({
   const [diff, setDiff] = useState<Change[]>([]);
 
   const advanceState = useCallback(() => {
-    if (timeoutToAdvanceOkRef.current) {
-      clearTimeout(timeoutToAdvanceOkRef.current);
-      timeoutToAdvanceOkRef.current = null;
-    }
-
     const advanceOkState = () => {
       setState(PlaygroundState.Input);
       setInput("");
@@ -133,12 +127,12 @@ function Playground({
       const diff = grammaticalDiff(dialogs[index].en, input);
       setDiff(diff);
 
-      if (diff.length === 1) {
+      if (!diff.find((part) => part.added || part.removed)) {
         setState(PlaygroundState.ConfirmOK);
         if (currentErrorCount === 0) {
           setCorrectCount((prev) => prev + 1);
         }
-        timeoutToAdvanceOkRef.current = setTimeout(advanceOkState, 1000);
+        advanceOkState();
       } else {
         setState(PlaygroundState.ConfirmError);
         setCurrentErrorCount((prev) => prev + 1);

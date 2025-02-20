@@ -5,7 +5,7 @@ import { GithubLink } from "./githubLink";
 
 export function Header() {
   return (
-    <header className="flex w-screen items-center justify-between bg-foreground/5 px-4 py-2">
+    <header className="flex w-full items-center justify-between bg-foreground/5 px-4 py-2">
       <Link href="/" className="flex items-center">
         <Image
           src={favicon.src}
