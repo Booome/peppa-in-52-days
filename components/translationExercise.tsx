@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
-import { diffChars } from "diff";
+import { cn, grammaticalDiff } from "@/lib/utils";
+import { Change } from "diff";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "./ui/button";
 
@@ -47,20 +47,15 @@ enum PlaygroundState {
 }
 
 function DiffRenderer({
-  text1,
-  text2,
+  changes,
   showAdded = true,
   showRemoved = true,
 }: {
-  text1: string;
-  text2: string;
+  changes: Change[];
   showAdded?: boolean;
   showRemoved?: boolean;
 }) {
-  const diff = diffChars(text1, text2, {
-    ignoreCase: true,
-  });
-  return diff
+  return changes
     .map((part, index) => {
       let className = "text-green-400";
 
@@ -105,6 +100,7 @@ function Playground({
     "flex w-full flex-col rounded-xl border-2 border-yellow-950 bg-yellow-900 p-4 font-peppa-pig text-lg text-background shadow-xl lg:text-2xl";
   const buttonClassName =
     "mt-4 font-bold uppercase tracking-widest transition-transform hover:scale-105 active:scale-100";
+  const [diff, setDiff] = useState<Change[]>([]);
 
   const advanceState = useCallback(() => {
     if (timeoutToAdvanceOkRef.current) {
@@ -134,7 +130,10 @@ function Playground({
         setTimeout(() => setHightlightInput(true), 1);
         return;
       }
-      if (input.toLowerCase() === dialogs[index].en.toLowerCase()) {
+      const diff = grammaticalDiff(dialogs[index].en, input);
+      setDiff(diff);
+
+      if (diff.length === 1) {
         setState(PlaygroundState.ConfirmOK);
         if (currentErrorCount === 0) {
           setCorrectCount((prev) => prev + 1);
@@ -159,21 +158,25 @@ function Playground({
         break;
     }
   }, [
+    correctCount,
+    currentErrorCount,
     dialogs,
     index,
     input,
-    state,
     onSuccess,
-    currentErrorCount,
-    timeoutToAdvanceOkRef,
+    state,
   ]);
 
   const restart = useCallback(() => {
     setIndex(0);
     setCorrectCount(0);
+    setCurrentErrorCount(0);
     setTotalErrorCount(0);
     setState(PlaygroundState.Input);
     setInput("");
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 1);
   }, []);
 
   useEffect(() => {
@@ -186,9 +189,9 @@ function Playground({
 
   useEffect(() => {
     const handleCtrlEnterKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === "Enter") {
+      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key === "Enter") {
         restart();
-      } else if (e.key === "Enter") {
+      } else if (!e.ctrlKey && !e.shiftKey && !e.altKey && e.key === "Enter") {
         advanceState();
       }
     };
@@ -197,7 +200,7 @@ function Playground({
     return () => {
       window.removeEventListener("keydown", handleCtrlEnterKeyDown);
     };
-  }, [advanceState]);
+  }, [advanceState, restart]);
 
   if (index >= dialogs.length) {
     return (
@@ -248,12 +251,7 @@ function Playground({
         {(state === PlaygroundState.ConfirmError ||
           state === PlaygroundState.ConfirmOK) && (
           <p className="h-full w-full rounded-md border-2 border-background/20 bg-foreground/5 p-2">
-            <DiffRenderer
-              text1={dialogs[index].en}
-              text2={input}
-              showAdded={state === PlaygroundState.ConfirmOK}
-              showRemoved={state === PlaygroundState.ConfirmError}
-            />
+            <DiffRenderer changes={diff} showAdded={true} showRemoved={true} />
           </p>
         )}
       </div>
