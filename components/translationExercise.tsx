@@ -1,7 +1,13 @@
 import { cn, grammaticalDiff } from "@/lib/utils";
 import { Change } from "diff";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { MicIcon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "./ui/button";
+import { Toggle } from "./ui/toggle";
+
+const Recognition: { new (): SpeechRecognition } | null =
+  (typeof window !== "undefined" && window.SpeechRecognition) ||
+  window.webkitSpeechRecognition;
 
 export function TranslationExercise({
   className,
@@ -98,8 +104,24 @@ function Playground({
   const containerClassName =
     "flex w-full flex-col rounded-xl border-2 border-yellow-950 bg-yellow-900 p-4 font-peppa-pig text-lg text-background shadow-xl lg:text-2xl";
   const buttonClassName =
-    "mt-4 font-bold uppercase tracking-widest transition-transform hover:scale-105 active:scale-100";
+    "mt-4 font-bold uppercase tracking-widest transition-transform hover:scale-105 active:scale-100 w-4/5 lg:w-fit";
   const [diff, setDiff] = useState<Change[]>([]);
+  const recognition = useMemo(
+    () => (Recognition ? new Recognition() : null),
+    [],
+  );
+  const [recognitionStarted, setRecognitionStarted] = useState(false);
+
+  useEffect(() => {
+    if (recognition) {
+      recognition.continuous = true;
+      recognition.onresult = (e) => {
+        setInput(
+          (prev) => prev + e.results[e.results.length - 1][0].transcript,
+        );
+      };
+    }
+  }, [recognition]);
 
   const advanceState = useCallback(() => {
     const advanceOkState = () => {
@@ -182,17 +204,17 @@ function Playground({
   }, [state]);
 
   useEffect(() => {
-    const handleCtrlEnterKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key === "Enter") {
         restart();
       } else if (!e.ctrlKey && !e.shiftKey && !e.altKey && e.key === "Enter") {
         advanceState();
       }
     };
-    window.addEventListener("keydown", handleCtrlEnterKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      window.removeEventListener("keydown", handleCtrlEnterKeyDown);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [advanceState, restart]);
 
@@ -226,21 +248,41 @@ function Playground({
           {state === PlaygroundState.Input ? "-- --" : dialogs[index].en}
         </span>
       </p>
-      <div className="mt-4 flex h-20 items-start gap-2">
+      <div className="relative mt-4 flex h-20 items-start gap-2">
         <span className="pt-2">in: </span>
         {state === PlaygroundState.Input && (
-          <textarea
-            ref={inputRef}
-            className={cn(
-              "h-full w-full resize-none rounded-md border-2 border-background/20 bg-foreground/5 p-2",
-              hightlightInput && "animate-shake border-red-400",
+          <>
+            <textarea
+              ref={inputRef}
+              className={cn(
+                "h-full w-full resize-none rounded-md border-2 border-background/20 bg-foreground/5 p-2",
+                hightlightInput && "animate-shake border-red-400",
+              )}
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value.replace(/\n/g, ""));
+                setHightlightInput(false);
+                setRecognitionStarted(false);
+                recognition?.stop();
+              }}
+            />
+            {recognition && (
+              <Toggle
+                pressed={recognitionStarted}
+                onPressedChange={(pressed) => {
+                  if (pressed) {
+                    recognition.start();
+                  } else {
+                    recognition.abort();
+                  }
+                  setRecognitionStarted(pressed);
+                }}
+                className="p-06 absolute bottom-2 right-2 size-6 min-w-6 [&_svg]:size-5"
+              >
+                <MicIcon className="h-5 w-5" />
+              </Toggle>
             )}
-            value={input}
-            onChange={(e) => {
-              setInput(e.target.value.replace(/\n/g, ""));
-              setHightlightInput(false);
-            }}
-          />
+          </>
         )}
         {(state === PlaygroundState.ConfirmError ||
           state === PlaygroundState.ConfirmOK) && (
@@ -251,10 +293,7 @@ function Playground({
       </div>
 
       <div className="flex flex-col items-center justify-center lg:flex-row lg:gap-2">
-        <Button
-          className={cn(buttonClassName, "w-4/5 lg:w-fit")}
-          onClick={advanceState}
-        >
+        <Button className={buttonClassName} onClick={advanceState}>
           {(() => {
             switch (state) {
               case PlaygroundState.Input:
@@ -267,10 +306,7 @@ function Playground({
           })()}
         </Button>
 
-        <Button
-          className={cn(buttonClassName, "w-4/5 lg:w-fit")}
-          onClick={restart}
-        >
+        <Button className={buttonClassName} onClick={restart}>
           Restart (Ctrl + Enter)
         </Button>
       </div>
