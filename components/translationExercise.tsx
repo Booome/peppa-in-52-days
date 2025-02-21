@@ -69,12 +69,14 @@ function DiffRenderer({
         if (!showAdded) {
           return null;
         }
-        className = part.value === " " ? "bg-yellow-400" : "text-yellow-400";
+        className = part.value.match(/^\s+$/)
+          ? "bg-yellow-400"
+          : "text-yellow-400";
       } else if (part.removed) {
         if (!showRemoved) {
           return null;
         }
-        className = part.value === " " ? "bg-red-400" : "text-red-400";
+        className = part.value.match(/^\s+$/) ? "bg-red-400" : "text-red-400";
       }
 
       return (
@@ -117,7 +119,7 @@ function Playground({
       recognition.continuous = true;
       recognition.onresult = (e) => {
         setInput(
-          (prev) => prev + e.results[e.results.length - 1][0].transcript,
+          (prev) => prev + e.results[e.results.length - 1][0].transcript + " ",
         );
       };
     }
@@ -148,6 +150,7 @@ function Playground({
       }
       const diff = grammaticalDiff(dialogs[index].en, input);
       setDiff(diff);
+      console.log("Diff:", diff);
 
       if (!diff.find((part) => part.added || part.removed)) {
         setState(PlaygroundState.ConfirmOK);

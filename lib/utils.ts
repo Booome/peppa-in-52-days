@@ -9,8 +9,9 @@ export function cn(...inputs: ClassValue[]) {
 
 export function standardizeText(text: string) {
   return text
-    .replace(/([,.;?!])\s*([a-zA-Z])/g, "$1 $2")
-    .replace(/([a-zA-Z!])\s*([,.;?])/g, "$1$2");
+    .replace(/[,.;?!]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function isSentenceSeparator(char: string) {
@@ -50,6 +51,12 @@ export function grammaticalDiff(text1: string, text2: string) {
         isSentenceSeparator(diff[i + 1].value)
       ) {
         out.push({ ...diff[i], removed: false });
+        i++;
+        continue;
+      }
+
+      if (diff[i].added && diff[i].value.match(/^\s+$/)) {
+        out.push({ ...diff[i], added: false });
         i++;
         continue;
       }
