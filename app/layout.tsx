@@ -1,4 +1,5 @@
 import { Header } from "@/components/header";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { ReduxProvider } from "@/redux/reduxProvider";
 import type { Metadata } from "next";
@@ -37,8 +38,10 @@ export default function RootLayout({
         )}
       >
         <ReduxProvider>
-          <Header />
-          <div className="w-full lg:max-w-7xl lg:p-10">{children}</div>
+          <TooltipProvider>
+            <Header />
+            <div className="w-full lg:max-w-7xl lg:p-10">{children}</div>
+          </TooltipProvider>
         </ReduxProvider>
       </body>
     </html>

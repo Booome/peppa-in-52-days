@@ -1,9 +1,10 @@
 import { cn, grammaticalDiff } from "@/lib/utils";
 import { Change } from "diff";
-import { MicIcon } from "lucide-react";
+import { CircleDot, MicIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "./ui/button";
 import { Toggle } from "./ui/toggle";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 const Recognition: { new (): SpeechRecognition } | null =
   (typeof window !== "undefined" && window.SpeechRecognition) ||
@@ -212,6 +213,14 @@ function Playground({
         restart();
       } else if (!e.ctrlKey && !e.shiftKey && !e.altKey && e.key === "Enter") {
         advanceState();
+      } else if (e.ctrlKey && !e.shiftKey && e.altKey && e.key === "9") {
+        if (recognitionStarted) {
+          setRecognitionStarted(false);
+          recognition?.abort();
+        } else {
+          setRecognitionStarted(true);
+          recognition?.start();
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -219,7 +228,7 @@ function Playground({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [advanceState, restart]);
+  }, [advanceState, restart, recognition, recognitionStarted]);
 
   if (index >= dialogs.length) {
     return (
@@ -270,20 +279,35 @@ function Playground({
               }}
             />
             {recognition && (
-              <Toggle
-                pressed={recognitionStarted}
-                onPressedChange={(pressed) => {
-                  if (pressed) {
-                    recognition.start();
-                  } else {
-                    recognition.abort();
-                  }
-                  setRecognitionStarted(pressed);
-                }}
-                className="p-06 absolute bottom-2 right-2 size-6 min-w-6 [&_svg]:size-5"
-              >
-                <MicIcon className="h-5 w-5" />
-              </Toggle>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Toggle
+                    pressed={recognitionStarted}
+                    onPressedChange={(pressed) => {
+                      if (pressed) {
+                        recognition.start();
+                      } else {
+                        recognition.abort();
+                      }
+                      setRecognitionStarted(pressed);
+                    }}
+                    className="p-06 absolute bottom-2 right-2 size-6 min-w-6 [&_svg]:size-5"
+                  >
+                    {recognitionStarted ? (
+                      <CircleDot className="h-5 w-5 animate-pulse text-red-500" />
+                    ) : (
+                      <MicIcon className="h-5 w-5" />
+                    )}
+                  </Toggle>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {recognitionStarted ? (
+                    <p>Stop voice recognition (Ctrl + Alt + 9)</p>
+                  ) : (
+                    <p>Start voice recognition (Ctrl + Alt + 9)</p>
+                  )}
+                </TooltipContent>
+              </Tooltip>
             )}
           </>
         )}
