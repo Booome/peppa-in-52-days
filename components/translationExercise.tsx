@@ -289,55 +289,27 @@ function Playground({
       </p>
       <div className="relative mt-4 flex h-20 items-start gap-2">
         <span className="pt-2">in: </span>
+
         {state === PlaygroundState.Input && (
-          <>
-            <textarea
-              ref={inputRef}
-              className={cn(
-                "h-full w-full resize-none rounded-md border-2 border-background/20 bg-foreground/5 p-2",
-                hightlightInput && "animate-shake border-red-400",
-              )}
-              disabled={isBusy}
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value.replace(/\n/g, ""));
-                setHightlightInput(false);
-              }}
-              onKeyDown={() => {
-                startRecognition(false);
-              }}
-              onMouseDown={() => {
-                startRecognition(false);
-              }}
-            />
-            {recognition && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Toggle
-                    disabled={isBusy}
-                    pressed={recognitionStarted}
-                    onPressedChange={(pressed) => {
-                      startRecognition(pressed);
-                    }}
-                    className="p-06 absolute bottom-2 right-2 size-6 min-w-6 [&_svg]:size-5"
-                  >
-                    {recognitionStarted ? (
-                      <CircleDot className="h-5 w-5 animate-pulse text-red-500" />
-                    ) : (
-                      <MicIcon className="h-5 w-5" />
-                    )}
-                  </Toggle>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {recognitionStarted ? (
-                    <p>Stop voice recognition (Ctrl + Alt + 9)</p>
-                  ) : (
-                    <p>Start voice recognition (Ctrl + Alt + 9)</p>
-                  )}
-                </TooltipContent>
-              </Tooltip>
+          <textarea
+            ref={inputRef}
+            className={cn(
+              "h-full w-full resize-none rounded-md border-2 border-background/20 bg-foreground/5 p-2",
+              hightlightInput && "animate-shake border-red-400",
             )}
-          </>
+            disabled={isBusy}
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value.replace(/\n/g, ""));
+              setHightlightInput(false);
+            }}
+            onKeyDown={() => {
+              startRecognition(false);
+            }}
+            onMouseDown={() => {
+              startRecognition(false);
+            }}
+          />
         )}
         {state === PlaygroundState.Error && (
           <p
@@ -346,6 +318,35 @@ function Playground({
           >
             <DiffRenderer changes={diff} showAdded={true} showRemoved={true} />
           </p>
+        )}
+        {recognition && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Toggle
+                disabled={isBusy}
+                pressed={recognitionStarted}
+                onPressedChange={(pressed) => {
+                  startRecognition(pressed);
+                  if (state !== PlaygroundState.Input) {
+                    gotoInputState();
+                  }
+                }}
+                className="p-06 absolute bottom-2 right-2 size-6 min-w-6 [&_svg]:size-5"
+              >
+                {recognitionStarted ? (
+                  <CircleDot className="h-5 w-5 animate-pulse text-red-500" />
+                ) : (
+                  <MicIcon className="h-5 w-5" />
+                )}
+              </Toggle>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>
+                {recognitionStarted ? "Stop" : "Start"} voice recognition ( Ctrl
+                + Alt + 9)
+              </p>
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
 
