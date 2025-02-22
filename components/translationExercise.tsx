@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { Change } from "diff";
 import { CircleDot, MicIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDebouncedCallback } from "use-debounce";
 import { Button } from "./ui/button";
 import { Toggle } from "./ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
@@ -50,8 +51,7 @@ export function TranslationExercise({
 
 enum PlaygroundState {
   Input,
-  ConfirmError,
-  ConfirmOK,
+  Error,
 }
 
 function DiffRenderer({
@@ -131,23 +131,27 @@ function Playground({
     }
   }, [recognition, isBusy]);
 
+  const gotoInputState = useCallback(() => {
+    setState(PlaygroundState.Input);
+    setInput("");
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+  }, []);
+
+  const startRecognition = useDebouncedCallback((value: boolean) => {
+    setRecognitionStarted(value);
+    if (value) {
+      recognition?.start();
+    } else {
+      recognition?.stop();
+    }
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+  }, 100);
+
   const advanceState = useCallback(async () => {
-    const advanceOkState = () => {
-      setState(PlaygroundState.Input);
-      setInput("");
-      setIndex((prev) => prev + 1);
-      setCurrentErrorCount(0);
-
-      if (index >= dialogs.length - 1 && correctCount == 0) {
-        onSuccess?.();
-      }
-    };
-
-    const advanceErrorState = () => {
-      setState(PlaygroundState.Input);
-      setInput("");
-    };
-
     const advanceInputState = async () => {
       if (input.length === 0) {
         setHightlightInput(false);
@@ -158,16 +162,27 @@ function Playground({
       setDiff(diff);
 
       if (!diff.find((part) => part.added || part.removed)) {
-        setState(PlaygroundState.ConfirmOK);
-        if (currentErrorCount === 0) {
-          setCorrectCount((prev) => prev + 1);
+        if (index >= dialogs.length - 1 && totalErrorCount == 0) {
+          onSuccess?.();
+        } else {
+          if (currentErrorCount === 0) {
+            setCorrectCount((prev) => prev + 1);
+          }
+          setIndex((prev) => prev + 1);
+          setCurrentErrorCount(0);
+          gotoInputState();
         }
-        advanceOkState();
       } else {
-        setState(PlaygroundState.ConfirmError);
+        setState(PlaygroundState.Error);
         setCurrentErrorCount((prev) => prev + 1);
         setTotalErrorCount((prev) => prev + 1);
+
+        startRecognition(false);
       }
+    };
+
+    const advanceErrorState = () => {
+      gotoInputState();
     };
 
     setIsBusy(true);
@@ -176,24 +191,23 @@ function Playground({
         case PlaygroundState.Input:
           await advanceInputState();
           break;
-        case PlaygroundState.ConfirmError:
+        case PlaygroundState.Error:
           advanceErrorState();
-          break;
-        case PlaygroundState.ConfirmOK:
-          advanceOkState();
           break;
       }
     } finally {
       setIsBusy(false);
     }
   }, [
-    correctCount,
     currentErrorCount,
     dialogs,
+    gotoInputState,
     index,
     input,
     onSuccess,
+    startRecognition,
     state,
+    totalErrorCount,
   ]);
 
   const restart = useCallback(() => {
@@ -201,20 +215,8 @@ function Playground({
     setCorrectCount(0);
     setCurrentErrorCount(0);
     setTotalErrorCount(0);
-    setState(PlaygroundState.Input);
-    setInput("");
-    setTimeout(() => {
-      inputRef.current?.focus();
-    }, 1);
-  }, []);
-
-  useEffect(() => {
-    if (state === PlaygroundState.Input) {
-      if (inputRef.current) {
-        inputRef.current.focus();
-      }
-    }
-  }, [state]);
+    gotoInputState();
+  }, [gotoInputState]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -227,12 +229,9 @@ function Playground({
       } else if (!e.ctrlKey && !e.shiftKey && !e.altKey && e.key === "Enter") {
         advanceState();
       } else if (e.ctrlKey && !e.shiftKey && e.altKey && e.key === "9") {
-        if (recognitionStarted) {
-          setRecognitionStarted(false);
-          recognition?.abort();
-        } else {
-          setRecognitionStarted(true);
-          recognition?.start();
+        startRecognition(!recognitionStarted);
+        if (state === PlaygroundState.Error) {
+          gotoInputState();
         }
       }
     };
@@ -241,7 +240,15 @@ function Playground({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [advanceState, restart, recognition, recognitionStarted, isBusy]);
+  }, [
+    advanceState,
+    gotoInputState,
+    isBusy,
+    recognitionStarted,
+    restart,
+    startRecognition,
+    state,
+  ]);
 
   if (index >= dialogs.length) {
     return (
@@ -283,12 +290,17 @@ function Playground({
                 "h-full w-full resize-none rounded-md border-2 border-background/20 bg-foreground/5 p-2",
                 hightlightInput && "animate-shake border-red-400",
               )}
+              disabled={isBusy}
               value={input}
               onChange={(e) => {
                 setInput(e.target.value.replace(/\n/g, ""));
                 setHightlightInput(false);
-                setRecognitionStarted(false);
-                recognition?.stop();
+              }}
+              onKeyDown={() => {
+                startRecognition(false);
+              }}
+              onMouseDown={() => {
+                startRecognition(false);
               }}
             />
             {recognition && (
@@ -298,12 +310,7 @@ function Playground({
                     disabled={isBusy}
                     pressed={recognitionStarted}
                     onPressedChange={(pressed) => {
-                      if (pressed) {
-                        recognition.start();
-                      } else {
-                        recognition.abort();
-                      }
-                      setRecognitionStarted(pressed);
+                      startRecognition(pressed);
                     }}
                     className="p-06 absolute bottom-2 right-2 size-6 min-w-6 [&_svg]:size-5"
                   >
@@ -325,9 +332,11 @@ function Playground({
             )}
           </>
         )}
-        {(state === PlaygroundState.ConfirmError ||
-          state === PlaygroundState.ConfirmOK) && (
-          <p className="h-full w-full rounded-md border-2 border-background/20 bg-foreground/5 p-2">
+        {state === PlaygroundState.Error && (
+          <p
+            className="h-full w-full rounded-md border-2 border-background/20 bg-foreground/5 p-2"
+            onDoubleClick={gotoInputState}
+          >
             <DiffRenderer changes={diff} showAdded={true} showRemoved={true} />
           </p>
         )}
@@ -343,10 +352,8 @@ function Playground({
             switch (state) {
               case PlaygroundState.Input:
                 return "Confirm (Enter)";
-              case PlaygroundState.ConfirmError:
+              case PlaygroundState.Error:
                 return "Try Again (Enter)";
-              case PlaygroundState.ConfirmOK:
-                return "Next (Enter)";
             }
           })()}
         </Button>
