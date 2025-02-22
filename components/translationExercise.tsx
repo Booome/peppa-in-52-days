@@ -1,4 +1,5 @@
-import { cn, grammaticalDiff } from "@/lib/utils";
+import { grammaticalDiff } from "@/lib/grammaticalDiff";
+import { cn } from "@/lib/utils";
 import { Change } from "diff";
 import { CircleDot, MicIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -114,19 +115,23 @@ function Playground({
     [],
   );
   const [recognitionStarted, setRecognitionStarted] = useState(false);
+  const [isBusy, setIsBusy] = useState(false);
 
   useEffect(() => {
     if (recognition) {
       recognition.continuous = true;
       recognition.onresult = (e) => {
+        if (isBusy) {
+          return;
+        }
         setInput(
           (prev) => prev + e.results[e.results.length - 1][0].transcript + " ",
         );
       };
     }
-  }, [recognition]);
+  }, [recognition, isBusy]);
 
-  const advanceState = useCallback(() => {
+  const advanceState = useCallback(async () => {
     const advanceOkState = () => {
       setState(PlaygroundState.Input);
       setInput("");
@@ -143,15 +148,14 @@ function Playground({
       setInput("");
     };
 
-    const advanceInputState = () => {
+    const advanceInputState = async () => {
       if (input.length === 0) {
         setHightlightInput(false);
         setTimeout(() => setHightlightInput(true), 1);
         return;
       }
-      const diff = grammaticalDiff(dialogs[index].en, input);
+      const diff = await grammaticalDiff(dialogs[index].en, input);
       setDiff(diff);
-      console.log("Diff:", diff);
 
       if (!diff.find((part) => part.added || part.removed)) {
         setState(PlaygroundState.ConfirmOK);
@@ -166,16 +170,21 @@ function Playground({
       }
     };
 
-    switch (state) {
-      case PlaygroundState.Input:
-        advanceInputState();
-        break;
-      case PlaygroundState.ConfirmError:
-        advanceErrorState();
-        break;
-      case PlaygroundState.ConfirmOK:
-        advanceOkState();
-        break;
+    setIsBusy(true);
+    try {
+      switch (state) {
+        case PlaygroundState.Input:
+          await advanceInputState();
+          break;
+        case PlaygroundState.ConfirmError:
+          advanceErrorState();
+          break;
+        case PlaygroundState.ConfirmOK:
+          advanceOkState();
+          break;
+      }
+    } finally {
+      setIsBusy(false);
     }
   }, [
     correctCount,
@@ -209,6 +218,10 @@ function Playground({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (isBusy) {
+        return;
+      }
+
       if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key === "Enter") {
         restart();
       } else if (!e.ctrlKey && !e.shiftKey && !e.altKey && e.key === "Enter") {
@@ -228,7 +241,7 @@ function Playground({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [advanceState, restart, recognition, recognitionStarted]);
+  }, [advanceState, restart, recognition, recognitionStarted, isBusy]);
 
   if (index >= dialogs.length) {
     return (
@@ -282,6 +295,7 @@ function Playground({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Toggle
+                    disabled={isBusy}
                     pressed={recognitionStarted}
                     onPressedChange={(pressed) => {
                       if (pressed) {
@@ -320,7 +334,11 @@ function Playground({
       </div>
 
       <div className="flex flex-col items-center justify-center lg:flex-row lg:gap-2">
-        <Button className={buttonClassName} onClick={advanceState}>
+        <Button
+          className={buttonClassName}
+          onClick={advanceState}
+          disabled={isBusy}
+        >
           {(() => {
             switch (state) {
               case PlaygroundState.Input:
@@ -333,7 +351,7 @@ function Playground({
           })()}
         </Button>
 
-        <Button className={buttonClassName} onClick={restart}>
+        <Button className={buttonClassName} onClick={restart} disabled={isBusy}>
           Restart (Ctrl + Enter)
         </Button>
       </div>
