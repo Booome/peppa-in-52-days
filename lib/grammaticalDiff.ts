@@ -52,12 +52,6 @@ export async function grammaticalDiff(text1: string, text2: string) {
         i++;
         continue;
       }
-
-      if (diff[i].added && diff[i].value.match(/^\s+$/)) {
-        out.push({ ...diff[i], added: false });
-        i++;
-        continue;
-      }
     }
 
     if (
