@@ -124,8 +124,15 @@ function Playground({
         if (isBusy) {
           return;
         }
+        const selectionStart = inputRef.current?.selectionStart;
+        const selectionEnd = inputRef.current?.selectionEnd;
+        const text = inputRef.current?.value;
+
         setInput(
-          (prev) => prev + e.results[e.results.length - 1][0].transcript + " ",
+          () =>
+            text?.slice(0, selectionStart) +
+            e.results[e.results.length - 1][0].transcript +
+            text?.slice(selectionEnd),
         );
       };
     }
