@@ -308,8 +308,10 @@ function Playground({
           <textarea
             ref={inputRef}
             className={cn(
-              "h-full w-full resize-none rounded-md border-2 border-background/20 bg-foreground/5 p-2",
-              hightlightInput && "animate-shake border-red-400",
+              "h-full w-full resize-none rounded-md border-2 border-background/20 bg-foreground/5 p-2 focus:outline-none",
+              {
+                "animate-shake border-red-400": hightlightInput,
+              },
             )}
             disabled={isBusy}
             value={input}
