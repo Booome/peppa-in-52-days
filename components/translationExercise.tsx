@@ -319,10 +319,7 @@ function Playground({
               setInput(e.target.value.replace(/\n/g, ""));
               setHightlightInput(false);
             }}
-            onKeyDown={() => {
-              startRecognition(false);
-            }}
-            onMouseDown={() => {
+            onSelect={() => {
               startRecognition(false);
             }}
           />
