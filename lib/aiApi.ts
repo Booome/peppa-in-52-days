@@ -7,18 +7,24 @@ const openai = new OpenAI({
   baseURL: process.env.OPENAI_BASE_URL,
 });
 
-export async function expandContractions(text: string[]) {
+export async function expandContractions(text: string[], maxTokens = 300) {
   const completion = await openai.chat.completions.create({
     model: "deepseek-v3",
+    temperature: 0,
+    max_tokens: maxTokens,
+    response_format: { type: "json_object" },
     messages: [
       {
         role: "system",
         content:
-          'You are a helpful assistant that expands English contractions while ensuring grammatical correctness. When encountering possessive forms (e.g., George\'s), retain them as they are. Only expand standard contractions (e.g., "don\'t" to "do not"). Don\'t do anything else such as grammar correction or spell correction. I will give you a stringifyed array of strings, and you will return a stringifyed array of strings only. no markdown, no code block, no other text.',
+          'You are a helpful assistant that expands English contractions while ensuring grammatical correctness. When encountering possessive forms (e.g., George\'s), retain them as they are. Only expand standard contractions (e.g., "don\'t" to "do not"). Don\'t do anything else such as grammar correction or spell correction.',
       },
       { role: "user", content: JSON.stringify(text) },
     ],
   });
+
+  console.log("Input: ", text);
+  console.log("Output: ", JSON.parse(completion.choices[0].message.content!));
 
   return JSON.parse(completion.choices[0].message.content!);
 }

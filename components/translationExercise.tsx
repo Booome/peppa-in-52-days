@@ -1,7 +1,9 @@
 import { grammaticalDiff } from "@/lib/grammaticalDiff";
 import { cn } from "@/lib/utils";
+import loadingGif from "@/public/loading.gif";
 import { Change } from "diff";
 import { CircleDot, MicIcon } from "lucide-react";
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import { Button } from "./ui/button";
@@ -108,7 +110,7 @@ function Playground({
   const containerClassName =
     "flex w-full flex-col rounded-xl border-2 border-yellow-950 bg-yellow-900 p-4 font-peppa-pig text-lg text-background shadow-xl lg:text-2xl";
   const buttonClassName =
-    "mt-4 font-bold uppercase tracking-widest transition-transform hover:scale-105 active:scale-100 w-4/5 lg:w-fit";
+    "mt-4 font-bold uppercase tracking-widest transition-transform hover:scale-105 active:scale-100 w-4/5 lg:w-1/4";
   const [diff, setDiff] = useState<Change[]>([]);
   const recognition = useMemo(
     () => (Recognition ? new Recognition() : null),
@@ -273,7 +275,19 @@ function Playground({
   }
 
   return (
-    <div className={containerClassName}>
+    <div className={cn(containerClassName, "relative")}>
+      {isBusy && (
+        <div className="absolute left-1/2 top-1/2 z-10 flex size-36 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-background/50">
+          <Image
+            src={loadingGif}
+            alt="Loading"
+            width={100}
+            height={100}
+            className="-mt-9 size-40"
+          />
+        </div>
+      )}
+
       <p className="text-center text-sm">
         Total: {dialogs.length} / Current: {index + 1} / Correct: {correctCount}{" "}
         / Total Error: {totalErrorCount}
@@ -350,7 +364,7 @@ function Playground({
         )}
       </div>
 
-      <div className="flex flex-col items-center justify-center lg:flex-row lg:gap-2">
+      <div className="flex flex-col items-center justify-center lg:flex-row lg:gap-5">
         <Button
           className={buttonClassName}
           onClick={advanceState}

@@ -20,6 +20,8 @@ export async function grammaticalDiff(text1: string, text2: string) {
     text2,
   ]);
 
+  console.log(expandedText1, expandedText2);
+
   const standardizedText1 = standardizeText(expandedText1!);
   const standardizedText2 = standardizeText(expandedText2!);
 
