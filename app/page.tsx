@@ -1,4 +1,4 @@
-import { BilibiliVideo } from "@/components/bilibiliVideo";
+import { BilibiliVideo } from "@/components/BilibiliVideo";
 import { ExerciseStack } from "@/components/ExerciseStack";
 import { tutorialEntryUrl, videoList } from "@/lib/videoResource";
 import { ChevronsRightIcon } from "lucide-react";

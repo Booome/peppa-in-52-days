@@ -1,4 +1,4 @@
-import { Header } from "@/components/header";
+import { Header } from "@/components/Header";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { ReduxProvider } from "@/redux/reduxProvider";
