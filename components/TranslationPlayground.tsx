@@ -232,7 +232,7 @@ export function TranslationPlayground({
   return (
     <div className={cn(containerClassName, "relative")}>
       {isBusy && (
-        <div className="absolute left-1/2 top-1/2 z-10 flex size-36 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-background/50">
+        <div className="absolute left-1/2 top-1/2 z-10 flex size-36 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full">
           <Image
             src={loadingGif}
             alt="Loading"
