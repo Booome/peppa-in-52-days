@@ -1,7 +1,7 @@
 import favicon from "@/public/favicon.png";
 import Image from "next/image";
 import Link from "next/link";
-import { GithubLink } from "./githubLink";
+import { GithubLink } from "./GithubLink";
 
 export function Header() {
   return (

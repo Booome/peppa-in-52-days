@@ -1,7 +1,7 @@
 "use client";
 
-import { BilibiliVideo } from "@/components/bilibiliVideo";
-import { TranslationExercise } from "@/components/translationExercise";
+import { BilibiliVideo } from "@/components/BilibiliVideo";
+import { TranslationExercise } from "@/components/TranslationExercise";
 import { videoList } from "@/lib/videoResource";
 import {
   addSuccessLesson,
