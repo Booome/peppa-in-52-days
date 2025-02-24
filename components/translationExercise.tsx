@@ -11,8 +11,8 @@ import { Toggle } from "./ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 const Recognition: { new (): SpeechRecognition } | null =
-  (typeof window !== "undefined" && window.SpeechRecognition) ||
-  window.webkitSpeechRecognition;
+  typeof window !== "undefined" &&
+  (window.SpeechRecognition || window.webkitSpeechRecognition);
 
 export function TranslationExercise({
   className,
@@ -118,6 +118,7 @@ function Playground({
   );
   const [recognitionStarted, setRecognitionStarted] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
+  const audioContext = useMemo(() => new AudioContext(), []);
 
   useEffect(() => {
     if (recognition) {
