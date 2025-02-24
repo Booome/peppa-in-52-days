@@ -1,6 +1,6 @@
 "use server";
 
-import { Change, diffChars } from "diff";
+import { Change, diffWords } from "diff";
 import { expandContractions } from "./aiApi";
 
 function standardizeText(text: string) {
@@ -23,7 +23,7 @@ export async function grammaticalDiff(text1: string, text2: string) {
   const standardizedText1 = standardizeText(expandedText1!);
   const standardizedText2 = standardizeText(expandedText2!);
 
-  const diff = diffChars(standardizedText1, standardizedText2, {
+  const diff = diffWords(standardizedText1, standardizedText2, {
     ignoreCase: true,
   });
 
